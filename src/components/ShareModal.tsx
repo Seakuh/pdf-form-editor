@@ -12,6 +12,7 @@ import TelegramIcon from '@mui/icons-material/Telegram';
 import EmailIcon from '@mui/icons-material/Email';
 import CloseIcon from '@mui/icons-material/Close';
 import { fillPdfForm } from '../utils/pdfUtils';
+import type { FormField } from '../types/types';
 
 interface ShareModalProps {
   open: boolean;
@@ -167,9 +168,7 @@ export const ShareModal: FC<ShareModalProps> = ({
               key={button.name}
               variant="contained"
               startIcon={button.icon}
-              onClick={button.onClick || (() => window.open(button.url))}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={button.onClick}
               sx={{
                 bgcolor: button.color,
                 '&:hover': {
