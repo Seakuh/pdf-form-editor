@@ -1,52 +1,40 @@
-import { useEffect, useRef } from 'react';
 import { Box, Typography } from '@mui/material';
-import Typed from 'typed.js';
 
 export const AnimatedHeadline = () => {
-  const el = useRef(null);
-  const typed = useRef<Typed | null>(null);
-
-  useEffect(() => {
-    const options = {
-      strings: [
-        'Intelligentes PDF Formular',
-        'Einfach. Schnell. Digital.',
-      ],
-      typeSpeed: 50,
-      backSpeed: 30,
-      backDelay: 2000,
-      loop: true,
-    };
-
-    if (el.current) {
-      typed.current = new Typed(el.current, options);
-    }
-
-    return () => {
-      typed.current?.destroy();
-    };
-  }, []);
-
   return (
-    <Box sx={{ 
-      minHeight: '120px',  // Reserviere Platz für 2 Zeilen
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <Typography
-        variant="h3"
-        component="h1"
-        align="center"
+    <Box 
+      sx={{ 
+        textAlign: 'center',
+        animation: 'fadeIn 1s ease-out',
+      }}
+    >
+      <Box
+        component="img"
+        src="/pdfformapplogo.png"
+        alt="PDF Form App Logo"
         sx={{
-          fontWeight: 600,
+          width: '200px',
+          height: 'auto',
+          marginBottom: 3,
+          animation: 'slideUp 1s ease-out',
+        }}
+      />
+      <Typography
+        variant="h4"
+        component="h1"
+        sx={{
           color: 'primary.main',
-          minHeight: '2.4em',  // Etwa 2 Zeilen
-          display: 'flex',
-          alignItems: 'center'
+          fontWeight: 'bold',
+          mb: 2,
         }}
       >
-        <span ref={el} />
+        PDF Form Filler
+      </Typography>
+      <Typography
+        variant="subtitle1"
+        color="text.secondary"
+      >
+        Fill your PDF forms easily and quickly
       </Typography>
     </Box>
   );
