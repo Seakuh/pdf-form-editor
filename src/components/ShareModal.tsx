@@ -29,7 +29,10 @@ export const ShareModal: FC<ShareModalProps> = ({
   pdfUrl,
   fields 
 }) => {
-  const shareText = encodeURIComponent(`Here's the generated PDF: ${pdfName} 📄✨`);
+  const websiteUrl = 'https://pdf-form-editor-y6inb.kinsta.page/';
+  const shareText = encodeURIComponent(
+    `Here's the generated PDF: ${pdfName} 📄✨\n\nCreated with ${websiteUrl}`
+  );
 
   const generatePdf = async () => {
     if (!pdfUrl) return null;
