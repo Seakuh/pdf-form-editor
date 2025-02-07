@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import Typed from 'typed.js';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 
 export const AnimatedHeadline = () => {
   const el = useRef(null);
@@ -8,23 +8,17 @@ export const AnimatedHeadline = () => {
 
   useEffect(() => {
     const options = {
-      strings: [
-        'Fill PDF Forms ^1000 <span style="color: #42a5f5">Effortlessly</span>',
-        'Edit Forms ^1000 <span style="color: #42a5f5">Instantly</span>',
-        'Download PDFs ^1000 <span style="color: #42a5f5">Securely</span>'
-      ],
+      strings: ['PDF Formular Editor', 'Formularfelder ausfüllen', 'PDF herunterladen'],
       typeSpeed: 50,
-      backSpeed: 30,
-      backDelay: 2000,
+      backSpeed: 50,
       loop: true,
-      cursorChar: '|',
-      smartBackspace: true,
-      autoInsertCss: true,
       showCursor: true,
-      html: true
+      cursorChar: '|'
     };
 
-    typed.current = new Typed(el.current!, options);
+    if (el.current) {
+      typed.current = new Typed(el.current, options);
+    }
 
     return () => {
       typed.current?.destroy();
@@ -32,26 +26,8 @@ export const AnimatedHeadline = () => {
   }, []);
 
   return (
-    <Box sx={{ 
-      textAlign: 'center',
-      mb: 4,
-      height: 120, // Fixed height to prevent layout shift
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center'
-    }}>
-      <Typography 
-        variant="h2" 
-        component="h1"
-        sx={{ 
-          fontWeight: 700,
-          '& .typed-cursor': {
-            color: 'primary.main',
-          }
-        }}
-      >
-        <span ref={el}></span>
-      </Typography>
-    </Box>
+    <Typography variant="h3" component="h1" gutterBottom>
+      <span ref={el} />
+    </Typography>
   );
 }; 

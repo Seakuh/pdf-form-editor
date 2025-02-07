@@ -2,9 +2,34 @@ import { PDFDocument } from 'pdf-lib';
 
 interface FormField {
   name: string;
-  type: 'text' | 'checkbox' | 'radio' | 'select';
+  type: 'text' | 'checkbox' | 'radio' | 'select' | 'date';
   value: string;
   options?: string[];
+}
+
+function isDateField(fieldName: string, value: string): boolean {
+  const datePatterns = [
+    // Feldnamen-Muster
+    /date/i,
+    /datum/i,
+    /geboren/i,
+    /dob/i,
+    /birth/i,
+    /geb/i,
+    /geburt/i,
+    
+    // Werte-Muster (verschiedene Datumsformate)
+    /^\d{2}[./-]\d{2}[./-]\d{4}$/, // DD.MM.YYYY, DD-MM-YYYY
+    /^\d{4}[./-]\d{2}[./-]\d{2}$/, // YYYY.MM.DD, YYYY-MM-DD
+    /^\d{1,2}[.]\d{1,2}[.]\d{2,4}$/, // D.M.YY, D.M.YYYY
+    /^\d{1,2}[.]\d{1,2}[.]$/, // D.M. (unvollständiges Datum)
+  ];
+
+  // Prüfe sowohl den Feldnamen als auch den Wert
+  return datePatterns.some(pattern => 
+    pattern.test(fieldName.toLowerCase()) || 
+    pattern.test(value.toLowerCase())
+  );
 }
 
 export async function analyzePdf(file: File): Promise<FormField[]> {
@@ -31,10 +56,15 @@ export async function analyzePdf(file: File): Promise<FormField[]> {
         case 'PDFTextField':
           try {
             const textField = form.getTextField(name);
+            const currentValue = textField.getText() || '';
+            
+            // Prüfe ob es ein Datumsfeld ist basierend auf Name und Wert
+            const type = isDateField(name, currentValue) ? 'date' : 'text';
+            
             fields.push({
               name,
-              type: 'text',
-              value: textField.getText() || ''
+              type,
+              value: currentValue
             });
           } catch (e) {
             console.warn(`Error processing text field ${name}:`, e);

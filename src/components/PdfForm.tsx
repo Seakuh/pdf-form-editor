@@ -13,11 +13,16 @@ import {
   FormControl,
   InputLabel
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import 'dayjs/locale/de'; // Für deutsche Lokalisierung
 import SaveIcon from '@mui/icons-material/Save';
 
 interface FormField {
   name: string;
-  type: 'text' | 'checkbox' | 'radio' | 'select';
+  type: 'text' | 'checkbox' | 'radio' | 'select' | 'date';
   value: string;
   options?: string[];
 }
@@ -84,6 +89,26 @@ export const PdfForm: FC<PdfFormProps> = ({
               ))}
             </Select>
           </FormControl>
+        );
+      case 'date':
+        return (
+          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="de">
+            <DatePicker
+              label={field.name}
+              value={field.value ? dayjs(field.value, 'DD.MM.YYYY') : null}
+              onChange={(newValue) => {
+                const formattedDate = newValue ? newValue.format('DD.MM.YYYY') : '';
+                onChange(field.name, formattedDate);
+              }}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  variant: "outlined",
+                  error: false
+                }
+              }}
+            />
+          </LocalizationProvider>
         );
       default:
         return (
