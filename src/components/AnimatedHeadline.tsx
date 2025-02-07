@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { Box, Typography } from '@mui/material';
 import Typed from 'typed.js';
-import { Typography } from '@mui/material';
 
 export const AnimatedHeadline = () => {
   const el = useRef(null);
@@ -8,12 +8,14 @@ export const AnimatedHeadline = () => {
 
   useEffect(() => {
     const options = {
-      strings: ['PDF Formular Editor', 'Formularfelder ausfüllen', 'PDF herunterladen'],
+      strings: [
+        'Intelligentes PDF Formular',
+        'Einfach. Schnell. Digital.',
+      ],
       typeSpeed: 50,
-      backSpeed: 50,
+      backSpeed: 30,
+      backDelay: 2000,
       loop: true,
-      showCursor: true,
-      cursorChar: '|'
     };
 
     if (el.current) {
@@ -26,8 +28,26 @@ export const AnimatedHeadline = () => {
   }, []);
 
   return (
-    <Typography variant="h3" component="h1" gutterBottom>
-      <span ref={el} />
-    </Typography>
+    <Box sx={{ 
+      minHeight: '120px',  // Reserviere Platz für 2 Zeilen
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <Typography
+        variant="h3"
+        component="h1"
+        align="center"
+        sx={{
+          fontWeight: 600,
+          color: 'primary.main',
+          minHeight: '2.4em',  // Etwa 2 Zeilen
+          display: 'flex',
+          alignItems: 'center'
+        }}
+      >
+        <span ref={el} />
+      </Typography>
+    </Box>
   );
 }; 

@@ -57,8 +57,19 @@ export const PdfForm: FC<PdfFormProps> = ({
         );
       case 'radio':
         return (
-          <Box>
-            <Typography variant="caption" color="textSecondary">
+          <Box sx={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 0.5,
+            p: 1,
+            borderRadius: 1,
+            bgcolor: field.name === activeField ? 'action.hover' : 'transparent'
+          }}>
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ mb: 0.5 }}
+            >
               {field.name}
             </Typography>
             <FormControlLabel
@@ -68,9 +79,19 @@ export const PdfForm: FC<PdfFormProps> = ({
                   onChange={(e) => {
                     onChange(field.name, e.target.checked ? 'checked' : 'unchecked');
                   }}
+                  size="small"
+                  sx={{
+                    '&.Mui-checked': {
+                      color: 'primary.main',
+                    }
+                  }}
                 />
               }
-              label="Ankreuzen"
+              label={
+                <Typography variant="body2">
+                  Ankreuzen
+                </Typography>
+              }
             />
           </Box>
         );

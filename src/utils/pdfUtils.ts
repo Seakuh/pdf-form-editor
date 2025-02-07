@@ -49,33 +49,63 @@ function isDateField(fieldName: string, value: string): boolean {
   );
 }
 
-function isCheckboxField(fieldName: string, value: string): boolean {
-  const checkPatterns = [
-    // Deutsche Muster
-    /\[[ _]*\]/,  // [ ] oder [_]
-    /\([ _]*\)/,  // ( ) oder (_)
-    /□/,          // Leeres Quadrat
-    /\bx\b/i,     // X-Markierung
-    /kreuz/i,
-    /ankreuzen/i,
-    /markieren/i,
-    /auswahl/i,
-    /ja\/nein/i,
-    /j\/n/i,
-    /checkbox/i,
-    
-    // Englische Muster
-    /check/i,
-    /tick/i,
-    /mark/i,
-    /select/i,
-    /yes\/no/i,
-    /y\/n/i,
+function isCheckboxField(field: any, fieldName: string, value: string): boolean {
+  // Konvertiere zu Kleinbuchstaben für besseren Vergleich
+  const nameLower = fieldName.toLowerCase();
+  const valueLower = value.toLowerCase().trim();
+
+  // Prüfe die Größe des Feldes
+  const isSmallField = () => {
+    try {
+      const widget = field.acroField.getWidgets()[0];
+      if (widget) {
+        const rect = widget.getRectangle();
+        // Typische Checkbox ist quadratisch und klein
+        const isSquare = Math.abs(rect.width - rect.height) < 5;
+        const isSmall = rect.width < 20 && rect.height < 20;
+        console.log(`Field ${fieldName} size:`, rect.width, rect.height, isSquare, isSmall);
+        return isSquare && isSmall;
+      }
+    } catch (e) {
+      console.warn('Could not check field size:', e);
+    }
+    return false;
+  };
+
+  // Typische Checkbox-Indikatoren im Feldnamen
+  const namePatterns = [
+    /[\[\(\{\s_]*[xX\u2713\u2714]?[\]\)\}\s_]*/,  // [], (), {}, mit X oder ✓
+    /□|■|○|●|\u2610|\u2611|\u2612/,               // Unicode Checkbox Symbole
+    /\b(ankreuz|kreuz|markier|auswahl|check)/i,
+    /\b(ja|nein|j\/n)\b/i,
+    /\bzutreffend(es)?\b/i,
+    /\bwählen?\b/i,
+    /\b(tick|mark|check|select|choice)\b/i,
+    /\b(yes|no|y\/n)\b/i
   ];
 
-  return checkPatterns.some(pattern => 
-    pattern.test(fieldName) || pattern.test(value)
-  );
+  // Typische Werte für Checkboxen
+  const valuePatterns = [
+    /^[xX\u2713\u2714]$/,          // X oder ✓
+    /^(ja|nein|yes|no)$/i,         // Ja/Nein Werte
+    /^(true|false|0|1)$/i,         // Boolean-ähnliche Werte
+    /^(checked|unchecked)$/i,      // Checkbox-Status
+    /^\s*[■●\u2611\u2612]\s*$/     // Gefüllte Symbole
+  ];
+
+  const hasCheckboxName = namePatterns.some(pattern => pattern.test(nameLower));
+  const hasCheckboxValue = valuePatterns.some(pattern => pattern.test(valueLower));
+  const isSmall = isSmallField();
+
+  // Debug-Ausgabe
+  console.log(`Checking field "${fieldName}":`, {
+    hasCheckboxName,
+    hasCheckboxValue,
+    isSmall,
+    value: valueLower
+  });
+
+  return hasCheckboxName || hasCheckboxValue || isSmall;
 }
 
 export async function analyzePdf(file: File): Promise<FormField[]> {
@@ -104,32 +134,22 @@ export async function analyzePdf(file: File): Promise<FormField[]> {
             const textField = form.getTextField(name);
             const currentValue = textField.getText() || '';
             
-            // Feldtyp bestimmen
             let type: FormField['type'];
-            if (isDateField(name, currentValue)) {
+            if (isCheckboxField(textField, name, currentValue)) {  // Übergebe das textField-Objekt
+              type = 'radio';
+              console.log('Checkbox field detected:', name, 'with value:', currentValue);
+            } else if (isDateField(name, currentValue)) {
               type = 'date';
-            } else if (isCheckboxField(name, currentValue)) {
-              type = 'radio';  // Wir verwenden radio für Checkbox-ähnliche Felder
             } else {
               type = 'text';
             }
             
-            // Hole die Feldposition
-            const annotations = await getFieldAnnotations(textField);
-            const bounds = annotations ? {
-              x: annotations.x,
-              y: annotations.y,
-              width: annotations.width,
-              height: annotations.height,
-              page: annotations.page
-            } : undefined;
-            
             fields.push({
               name,
               type,
-              value: type === 'radio' ? '' : currentValue, // Leerer Wert für Radio-Buttons
+              value: type === 'radio' ? '' : currentValue,
               options: type === 'radio' ? ['checked', 'unchecked'] : undefined,
-              bounds
+              bounds: await getFieldAnnotations(textField)
             });
           } catch (e) {
             console.warn(`Error processing field ${name}:`, e);
