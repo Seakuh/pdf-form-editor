@@ -28,19 +28,21 @@ interface PdfFormProps {
   onChange: (name: string, value: string) => void;
   onSubmit: (pdfName: string) => void;
   activeField: string;
+  pdfUrl?: string;  // URL statt Bytes
 }
 
 export const PdfForm: FC<PdfFormProps> = ({ 
   fields, 
   onChange, 
   onSubmit: parentOnSubmit,
-  activeField 
+  activeField,
+  pdfUrl
 }) => {
   const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [pdfName, setPdfName] = useState('form.pdf');
+  const [pdfName, setPdfName] = useState('form');  // .pdf entfernt
 
   const handleSubmit = () => {
-    parentOnSubmit(pdfName);
+    parentOnSubmit(`${pdfName}.pdf`);
   };
 
   const renderField = (field: FormField) => {
@@ -242,7 +244,9 @@ export const PdfForm: FC<PdfFormProps> = ({
       <ShareModal 
         open={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
-        pdfName={pdfName}
+        pdfName={`${pdfName}.pdf`}
+        pdfUrl={pdfUrl}
+        fields={fields}
       />
     </Paper>
   );

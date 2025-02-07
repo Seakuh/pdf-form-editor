@@ -26,6 +26,7 @@ function App() {
   const [pdfUrl, setPdfUrl] = useState<string>('');
   const [activeField, setActiveField] = useState<string>('');
   const [fields, setFields] = useState<FormField[]>([]);
+  const [currentPdfBytes, setCurrentPdfBytes] = useState<Uint8Array | undefined>();
 
   const handleFieldChange = (name: string, value: string) => {
     setActiveField(name);
@@ -40,6 +41,7 @@ function App() {
       const response = await fetch(pdfUrl);
       const pdfBytes = await response.arrayBuffer();
       const filledPdfBytes = await fillPdfForm(pdfBytes, fields);
+      setCurrentPdfBytes(filledPdfBytes);
       downloadPdf(filledPdfBytes, pdfName);
     } catch (error) {
       console.error('Error filling PDF:', error);
@@ -151,6 +153,7 @@ function App() {
                 onChange={handleFieldChange}
                 onSubmit={handleSubmit}
                 activeField={activeField}
+                pdfUrl={pdfUrl}
               />
             </Box>
           )}

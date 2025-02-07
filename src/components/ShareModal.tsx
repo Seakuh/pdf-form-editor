@@ -11,35 +11,101 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import TelegramIcon from '@mui/icons-material/Telegram';
 import EmailIcon from '@mui/icons-material/Email';
 import CloseIcon from '@mui/icons-material/Close';
+import { fillPdfForm } from '../utils/pdfUtils';
 
 interface ShareModalProps {
   open: boolean;
   onClose: () => void;
   pdfName: string;
+  pdfUrl?: string;
+  fields: FormField[];
 }
 
-export const ShareModal: FC<ShareModalProps> = ({ open, onClose, pdfName }) => {
+export const ShareModal: FC<ShareModalProps> = ({ 
+  open, 
+  onClose, 
+  pdfName, 
+  pdfUrl,
+  fields 
+}) => {
   const shareText = encodeURIComponent(`Here's the generated PDF: ${pdfName} 📄✨`);
-  const shareUrl = encodeURIComponent(window.location.href);
+
+  const generatePdf = async () => {
+    if (!pdfUrl) return null;
+    try {
+      const response = await fetch(pdfUrl);
+      const pdfBytes = await response.arrayBuffer();
+      const filledPdfBytes = await fillPdfForm(pdfBytes, fields);
+      return new Blob([filledPdfBytes], { type: 'application/pdf' });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      return null;
+    }
+  };
 
   const shareButtons = [
     {
       name: 'WhatsApp',
       icon: <WhatsAppIcon />,
       color: '#25D366',
-      url: `https://wa.me/?text=${shareText}`,
+      onClick: async () => {
+        const blob = await generatePdf();
+        if (blob) {
+          const file = new File([blob], pdfName, { type: 'application/pdf' });
+          if (navigator.share && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                text: decodeURIComponent(shareText)
+              });
+            } catch (err) {
+              window.open(`https://wa.me/?text=${shareText}`);
+            }
+          } else {
+            window.open(`https://wa.me/?text=${shareText}`);
+          }
+        }
+      }
     },
     {
       name: 'Telegram',
       icon: <TelegramIcon />,
       color: '#0088cc',
-      url: `https://t.me/share/url?url=${shareUrl}&text=${shareText}`,
+      onClick: async () => {
+        const blob = await generatePdf();
+        if (blob) {
+          // Telegram erlaubt keine direkten Dateianhänge über URL
+          // Wir speichern die Datei und teilen den Link
+          const downloadLink = URL.createObjectURL(blob);
+          const shareLink = `https://t.me/share/url?url=${encodeURIComponent(downloadLink)}&text=${shareText}`;
+          window.open(shareLink);
+          // Cleanup nach kurzer Verzögerung
+          setTimeout(() => URL.revokeObjectURL(downloadLink), 1000);
+        }
+      }
     },
     {
       name: 'Email',
       icon: <EmailIcon />,
       color: '#EA4335',
-      url: `mailto:?subject=${encodeURIComponent('Generated PDF')}&body=${shareText}`,
+      onClick: async () => {
+        const blob = await generatePdf();
+        if (blob) {
+          // Email mit Anhang
+          const mailtoLink = `mailto:?subject=${encodeURIComponent('Generated PDF')}&body=${shareText}`;
+          window.location.href = mailtoLink;
+          
+          // PDF herunterladen
+          const downloadUrl = URL.createObjectURL(blob);
+          const downloadLink = document.createElement('a');
+          downloadLink.href = downloadUrl;
+          downloadLink.download = pdfName;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+          URL.revokeObjectURL(downloadUrl);
+        }
+      }
     },
   ];
 
@@ -101,7 +167,7 @@ export const ShareModal: FC<ShareModalProps> = ({ open, onClose, pdfName }) => {
               key={button.name}
               variant="contained"
               startIcon={button.icon}
-              href={button.url}
+              onClick={button.onClick || (() => window.open(button.url))}
               target="_blank"
               rel="noopener noreferrer"
               sx={{
