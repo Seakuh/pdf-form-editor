@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { 
   TextField, 
   Box, 
@@ -18,7 +18,9 @@ import { DatePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
 import 'dayjs/locale/de'; // Für deutsche Lokalisierung
 import SaveIcon from '@mui/icons-material/Save';
+import ShareIcon from '@mui/icons-material/Share';
 import type { FormField } from '../types/types';
+import { ShareModal } from './ShareModal';
 
 interface PdfFormProps {
   fields: FormField[];
@@ -33,6 +35,8 @@ export const PdfForm: FC<PdfFormProps> = ({
   onSubmit,
   activeField 
 }) => {
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+
   const renderField = (field: FormField) => {
     switch (field.type) {
       case 'checkbox':
@@ -129,15 +133,34 @@ export const PdfForm: FC<PdfFormProps> = ({
             {renderField(field)}
           </Box>
         ))}
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={onSubmit}
-          startIcon={<SaveIcon />}
-        >
-          PDF Speichern
-        </Button>
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 2,
+          flexWrap: 'wrap'
+        }}>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={onSubmit}
+            startIcon={<SaveIcon />}
+          >
+            Save PDF
+          </Button>
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => setShareModalOpen(true)}
+            startIcon={<ShareIcon />}
+          >
+            Share
+          </Button>
+        </Box>
       </Box>
+      <ShareModal 
+        open={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        pdfName="form.pdf"
+      />
     </Paper>
   );
 }; 
