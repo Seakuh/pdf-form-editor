@@ -11,7 +11,8 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  Typography
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -56,22 +57,22 @@ export const PdfForm: FC<PdfFormProps> = ({
         );
       case 'radio':
         return (
-          <FormControl fullWidth>
-            <InputLabel>{field.name}</InputLabel>
-            <RadioGroup
-              value={field.value}
-              onChange={(e) => onChange(field.name, e.target.value)}
-            >
-              {field.options?.map(option => (
-                <FormControlLabel
-                  key={option}
-                  value={option}
-                  control={<Radio />}
-                  label={option}
+          <Box>
+            <Typography variant="caption" color="textSecondary">
+              {field.name}
+            </Typography>
+            <FormControlLabel
+              control={
+                <Radio
+                  checked={field.value === 'checked'}
+                  onChange={(e) => {
+                    onChange(field.name, e.target.checked ? 'checked' : 'unchecked');
+                  }}
                 />
-              ))}
-            </RadioGroup>
-          </FormControl>
+              }
+              label="Ankreuzen"
+            />
+          </Box>
         );
       case 'select':
         return (
@@ -92,45 +93,31 @@ export const PdfForm: FC<PdfFormProps> = ({
         );
       case 'date':
         return (
-          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="de">
-            <DatePicker
-              label={field.name}
-              value={field.value ? dayjs(field.value, 'DD.MM.YYYY') : null}
-              onChange={(newValue) => {
-                const formattedDate = newValue ? newValue.format('DD.MM.YYYY') : '';
-                onChange(field.name, formattedDate);
-              }}
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  variant: "outlined",
-                  error: false
-                }
-              }}
-            />
-          </LocalizationProvider>
+          <DatePicker
+            label={field.name}
+            value={field.value ? dayjs(field.value) : null}
+            onChange={(newValue) => {
+              onChange(field.name, newValue ? newValue.format('DD.MM.YYYY') : '');
+            }}
+          />
         );
       default:
         return (
           <TextField
+            fullWidth
             label={field.name}
             value={field.value}
             onChange={(e) => onChange(field.name, e.target.value)}
-            fullWidth
             variant="outlined"
-            focused={field.name === activeField}
+            size="small"
           />
         );
     }
   };
 
   return (
-    <Paper sx={{ p: 3 }}>
-      <Box component="form" sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        gap: 2 
-      }}>
+    <Paper sx={{ p: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {fields.map((field) => (
           <Box key={field.name}>
             {renderField(field)}
@@ -141,9 +128,8 @@ export const PdfForm: FC<PdfFormProps> = ({
           color="primary" 
           onClick={onSubmit}
           startIcon={<SaveIcon />}
-          sx={{ mt: 2 }}
         >
-          Save and Download PDF
+          PDF Speichern
         </Button>
       </Box>
     </Paper>

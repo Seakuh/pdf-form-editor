@@ -5,30 +5,76 @@ interface FormField {
   type: 'text' | 'checkbox' | 'radio' | 'select' | 'date';
   value: string;
   options?: string[];
+  bounds?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    page: number;
+  };
 }
 
 function isDateField(fieldName: string, value: string): boolean {
   const datePatterns = [
-    // Feldnamen-Muster
-    /date/i,
+    // Deutsche Muster
     /datum/i,
-    /geboren/i,
-    /dob/i,
-    /birth/i,
-    /geb/i,
+    /geb(urts)?[_.-]?(datum|tag)/i,
     /geburt/i,
+    /ausstellungs[_.-]?datum/i,
+    /eingangs[_.-]?datum/i,
     
-    // Werte-Muster (verschiedene Datumsformate)
-    /^\d{2}[./-]\d{2}[./-]\d{4}$/, // DD.MM.YYYY, DD-MM-YYYY
-    /^\d{4}[./-]\d{2}[./-]\d{2}$/, // YYYY.MM.DD, YYYY-MM-DD
-    /^\d{1,2}[.]\d{1,2}[.]\d{2,4}$/, // D.M.YY, D.M.YYYY
-    /^\d{1,2}[.]\d{1,2}[.]$/, // D.M. (unvollständiges Datum)
+    // Englische Muster
+    /date/i,
+    /dob/i,
+    /birth[_.-]?date/i,
+    /issue[_.-]?date/i,
+    /entry[_.-]?date/i,
+    /start[_.-]?date/i,
+    /end[_.-]?date/i,
+    
+    // Abkürzungen
+    /dt\./i,
+    /geb\./i,
+    /dob/i,
+    
+    // Datumsformate
+    /^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$/,
+    /^\d{4}[./-]\d{1,2}[./-]\d{1,2}$/,
+    /^\d{1,2}[.]\d{1,2}[.]$/
   ];
 
-  // Prüfe sowohl den Feldnamen als auch den Wert
   return datePatterns.some(pattern => 
     pattern.test(fieldName.toLowerCase()) || 
     pattern.test(value.toLowerCase())
+  );
+}
+
+function isCheckboxField(fieldName: string, value: string): boolean {
+  const checkPatterns = [
+    // Deutsche Muster
+    /\[[ _]*\]/,  // [ ] oder [_]
+    /\([ _]*\)/,  // ( ) oder (_)
+    /□/,          // Leeres Quadrat
+    /\bx\b/i,     // X-Markierung
+    /kreuz/i,
+    /ankreuzen/i,
+    /markieren/i,
+    /auswahl/i,
+    /ja\/nein/i,
+    /j\/n/i,
+    /checkbox/i,
+    
+    // Englische Muster
+    /check/i,
+    /tick/i,
+    /mark/i,
+    /select/i,
+    /yes\/no/i,
+    /y\/n/i,
+  ];
+
+  return checkPatterns.some(pattern => 
+    pattern.test(fieldName) || pattern.test(value)
   );
 }
 
@@ -58,16 +104,35 @@ export async function analyzePdf(file: File): Promise<FormField[]> {
             const textField = form.getTextField(name);
             const currentValue = textField.getText() || '';
             
-            // Prüfe ob es ein Datumsfeld ist basierend auf Name und Wert
-            const type = isDateField(name, currentValue) ? 'date' : 'text';
+            // Feldtyp bestimmen
+            let type: FormField['type'];
+            if (isDateField(name, currentValue)) {
+              type = 'date';
+            } else if (isCheckboxField(name, currentValue)) {
+              type = 'radio';  // Wir verwenden radio für Checkbox-ähnliche Felder
+            } else {
+              type = 'text';
+            }
+            
+            // Hole die Feldposition
+            const annotations = await getFieldAnnotations(textField);
+            const bounds = annotations ? {
+              x: annotations.x,
+              y: annotations.y,
+              width: annotations.width,
+              height: annotations.height,
+              page: annotations.page
+            } : undefined;
             
             fields.push({
               name,
               type,
-              value: currentValue
+              value: type === 'radio' ? '' : currentValue, // Leerer Wert für Radio-Buttons
+              options: type === 'radio' ? ['checked', 'unchecked'] : undefined,
+              bounds
             });
           } catch (e) {
-            console.warn(`Error processing text field ${name}:`, e);
+            console.warn(`Error processing field ${name}:`, e);
           }
           break;
 
@@ -203,4 +268,24 @@ export function downloadPdf(pdfBytes: Uint8Array) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+// Neue Hilfsfunktion für Feldpositionen
+async function getFieldAnnotations(field: any) {
+  try {
+    const widget = field.acroField.getWidgets()[0];
+    if (!widget) return null;
+
+    const rect = widget.getRectangle();
+    return {
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      page: widget.P().numberValue
+    };
+  } catch (e) {
+    console.warn('Could not get field annotations:', e);
+    return null;
+  }
 } 

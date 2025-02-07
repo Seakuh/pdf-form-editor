@@ -24,11 +24,27 @@ function App() {
     type: 'text' | 'checkbox' | 'radio' | 'select';
     value: string;
     options?: string[];
+    bounds?: { x: number; y: number };
   }>>([]);
 
   const handleFieldChange = (name: string, value: string) => {
+    setActiveField(name);
     setFields(fields.map(field => 
       field.name === name ? { ...field, value } : field
+    ));
+  };
+
+  const handleFieldPositionChange = (name: string, value: string, bounds?: { x: number; y: number }) => {
+    setFields(fields.map(field => 
+      field.name === name 
+        ? { 
+            ...field, 
+            value,
+            bounds: field.bounds 
+              ? { ...field.bounds, x: bounds?.x ?? field.bounds.x, y: bounds?.y ?? field.bounds.y }
+              : undefined
+          }
+        : field
     ));
   };
 
@@ -62,6 +78,21 @@ function App() {
     }
   };
 
+  const handleFieldAdd = (fieldData: { name: string; value: string; position: { x: number; y: number } }) => {
+    setFields([...fields, {
+      name: fieldData.name,
+      type: 'text',
+      value: fieldData.value,
+      bounds: {
+        x: fieldData.position.x,
+        y: fieldData.position.y,
+        width: 100,
+        height: 30,
+        page: 1
+      }
+    }]);
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles
@@ -85,134 +116,72 @@ function App() {
       />
       <Box sx={{
         minHeight: '100vh',
-        display: 'flex',
         bgcolor: '#f5f5f5',
-        justifyContent: 'center',
-        alignItems: 'center',
+        py: 2,
+        px: { xs: 2, sm: 3 }
       }}>
-        <Container maxWidth="xl" sx={{ 
-          py: 4,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
-        }}>
-          {!fields.length ? (
-            // Initial Upload Screen
-            <Box sx={{
-              height: '90vh',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
+        {!fields.length ? (
+          // Upload Screen
+          <Box sx={{
+            maxWidth: '600px',
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3,
+            pt: 4
+          }}>
+            <AnimatedHeadline />
+            <Typography 
+              variant="body1" 
+              color="text.secondary"
+              textAlign="center"
+              sx={{ mb: 3 }}
+            >
+              Laden Sie Ihr PDF-Formular hoch, um es auszufüllen
+            </Typography>
+            <PdfUpload 
+              onPdfSelected={handlePdfSelected}
+              isLoading={isLoading}
+            />
+          </Box>
+        ) : (
+          // Form View
+          <Box sx={{
+            maxWidth: '600px',
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
               alignItems: 'center',
-              gap: 4
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 2
             }}>
-              <Box sx={{ 
-                textAlign: 'center', 
-                maxWidth: 800,
-                animation: 'fadeIn 1s ease-out'
-              }}>
-                <AnimatedHeadline />
-                
-                <Typography 
-                  variant="h5" 
-                  color="text.secondary"
-                  sx={{ 
-                    mb: 4,
-                    opacity: 0,
-                    animation: 'slideUp 0.8s ease-out forwards',
-                    animationDelay: '0.5s'
-                  }}
-                >
-                  Transform your PDF experience with our intelligent form filler
-                </Typography>
-                
-                <Typography 
-                  variant="body1" 
-                  color="text.secondary"
-                  sx={{ 
-                    mb: 6,
-                    opacity: 0,
-                    animation: 'slideUp 0.8s ease-out forwards',
-                    animationDelay: '0.7s'
-                  }}
-                >
-                  Supports all PDF forms with fillable fields. Simply drag and drop your PDF 
-                  or click to select a file. Your data remains private and secure.
-                </Typography>
-              </Box>
-              
-              <Box sx={{ 
-                width: '100%', 
-                maxWidth: 500,
-                opacity: 0,
-                animation: 'slideUp 0.8s ease-out forwards',
-                animationDelay: '0.9s'
-              }}>
-                <PdfUpload 
-                  onPdfSelected={handlePdfSelected}
-                  isLoading={isLoading}
-                />
-              </Box>
-            </Box>
-          ) : (
-            // Editor View
-            <>
               <Typography 
-                variant="h4" 
-                component="h1" 
-                align="center"
-                sx={{ 
-                  mb: 4,
-                  fontWeight: 500,
-                  color: '#1976d2'
-                }}
+                variant="h5" 
+                component="h1"
+                sx={{ color: 'primary.main' }}
               >
-                PDF Form Editor
+                PDF Formular
               </Typography>
-              
-              <Box sx={{ 
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 4,
-                alignItems: 'start',
-                width: '100%',
-                maxWidth: '1400px',
-                margin: '0 auto'
-              }}>
-                {/* Linke Seite: Upload und Formular */}
-                <Box sx={{ 
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 3
-                }}>
-                  <PdfUpload 
-                    onPdfSelected={handlePdfSelected}
-                    isLoading={isLoading}
-                  />
-                  
-                  <PdfForm
-                    fields={fields}
-                    onChange={(name, value) => {
-                      setActiveField(name);
-                      handleFieldChange(name, value);
-                    }}
-                    onSubmit={handleSubmit}
-                    activeField={activeField}
-                  />
-                </Box>
-
-                {/* Rechte Seite: PDF Vorschau */}
-                {pdfUrl && (
-                  <PdfPreview
-                    pdfUrl={pdfUrl}
-                    activeField={activeField}
-                    fields={fields}
-                  />
-                )}
-              </Box>
-            </>
-          )}
-        </Container>
+              <PdfUpload 
+                onPdfSelected={handlePdfSelected}
+                isLoading={isLoading}
+                variant="small"
+              />
+            </Box>
+            
+            <PdfForm
+              fields={fields}
+              onChange={handleFieldChange}
+              onSubmit={handleSubmit}
+              activeField={activeField}
+            />
+          </Box>
+        )}
       </Box>
     </ThemeProvider>
   );
