@@ -39,7 +39,19 @@ export const ShareModal: FC<ShareModalProps> = ({
     try {
       const response = await fetch(pdfUrl);
       const pdfBytes = await response.arrayBuffer();
-      const filledPdfBytes = await fillPdfForm(pdfBytes, fields);
+      
+      // Stelle sicher, dass die Felder korrekte Werte haben
+      const filledFields = fields.map(field => {
+        // Entferne _text und _choice Suffixe für die PDF-Lib
+        const cleanName = field.name.replace(/_text$/, '').replace(/_choice$/, '');
+        return {
+          ...field,
+          name: cleanName
+        };
+      });
+
+      // Fülle das PDF mit den bereinigten Feldern
+      const filledPdfBytes = await fillPdfForm(pdfBytes, filledFields);
       return new Blob([filledPdfBytes], { type: 'application/pdf' });
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -56,17 +68,37 @@ export const ShareModal: FC<ShareModalProps> = ({
         const blob = await generatePdf();
         if (blob) {
           const file = new File([blob], pdfName, { type: 'application/pdf' });
+          
           if (navigator.share && navigator.canShare({ files: [file] })) {
             try {
               await navigator.share({
                 files: [file],
+                title: 'Shared PDF',
                 text: decodeURIComponent(shareText)
               });
             } catch (err) {
+              // Nur wenn Share fehlschlägt, öffne WhatsApp
               window.open(`https://wa.me/?text=${shareText}`);
             }
           } else {
-            window.open(`https://wa.me/?text=${shareText}`);
+            // Wenn Web Share API nicht verfügbar ist, zeige Download-Dialog
+            const shouldDownload = window.confirm(
+              'Web sharing is not available. Would you like to download the PDF and share the link?'
+            );
+            
+            if (shouldDownload) {
+              const pdfUrl = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = pdfUrl;
+              a.download = pdfName;
+              a.click();
+              URL.revokeObjectURL(pdfUrl);
+              
+              // Warte kurz und öffne dann WhatsApp
+              setTimeout(() => {
+                window.open(`https://wa.me/?text=${shareText}`);
+              }, 1000);
+            }
           }
         }
       }
@@ -78,13 +110,36 @@ export const ShareModal: FC<ShareModalProps> = ({
       onClick: async () => {
         const blob = await generatePdf();
         if (blob) {
-          // Telegram erlaubt keine direkten Dateianhänge über URL
-          // Wir speichern die Datei und teilen den Link
-          const downloadLink = URL.createObjectURL(blob);
-          const shareLink = `https://t.me/share/url?url=${encodeURIComponent(downloadLink)}&text=${shareText}`;
-          window.open(shareLink);
-          // Cleanup nach kurzer Verzögerung
-          setTimeout(() => URL.revokeObjectURL(downloadLink), 1000);
+          const file = new File([blob], pdfName, { type: 'application/pdf' });
+          
+          if (navigator.share && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: 'Shared PDF',
+                text: decodeURIComponent(shareText)
+              });
+            } catch (err) {
+              window.open(`https://t.me/share/url?text=${shareText}`);
+            }
+          } else {
+            const shouldDownload = window.confirm(
+              'Web sharing is not available. Would you like to download the PDF and share the link?'
+            );
+            
+            if (shouldDownload) {
+              const pdfUrl = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = pdfUrl;
+              a.download = pdfName;
+              a.click();
+              URL.revokeObjectURL(pdfUrl);
+              
+              setTimeout(() => {
+                window.open(`https://t.me/share/url?text=${shareText}`);
+              }, 1000);
+            }
+          }
         }
       }
     },
@@ -95,22 +150,22 @@ export const ShareModal: FC<ShareModalProps> = ({
       onClick: async () => {
         const blob = await generatePdf();
         if (blob) {
-          // Email mit Anhang
-          const mailtoLink = `mailto:?subject=${encodeURIComponent('Generated PDF')}&body=${shareText}`;
-          window.location.href = mailtoLink;
+          // Für E-Mail nur den Download und mailto Link
+          const pdfUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = pdfUrl;
+          a.download = pdfName;
+          a.click();
+          URL.revokeObjectURL(pdfUrl);
           
-          // PDF herunterladen
-          const downloadUrl = URL.createObjectURL(blob);
-          const downloadLink = document.createElement('a');
-          downloadLink.href = downloadUrl;
-          downloadLink.download = pdfName;
-          document.body.appendChild(downloadLink);
-          downloadLink.click();
-          document.body.removeChild(downloadLink);
-          URL.revokeObjectURL(downloadUrl);
+          // Öffne E-Mail nach kurzem Delay
+          setTimeout(() => {
+            const mailtoLink = `mailto:?subject=${encodeURIComponent('Generated PDF')}&body=${shareText}`;
+            window.location.href = mailtoLink;
+          }, 500);
         }
       }
-    },
+    }
   ];
 
   return (
