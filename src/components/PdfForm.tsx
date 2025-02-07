@@ -60,39 +60,30 @@ export const PdfForm: FC<PdfFormProps> = ({
           <Box sx={{ 
             display: 'flex',
             flexDirection: 'column',
-            gap: 0.5,
+            gap: 1,
             p: 1,
             borderRadius: 1,
             bgcolor: field.name === activeField ? 'action.hover' : 'transparent'
           }}>
-            <Typography 
-              variant="body2" 
-              color="text.secondary"
-              sx={{ mb: 0.5 }}
-            >
-              {field.name}
+            <Typography variant="body2" color="text.secondary">
+              {field.name.replace('_choice', '')}
             </Typography>
-            <FormControlLabel
-              control={
-                <Radio
-                  checked={field.value === 'checked'}
-                  onChange={(e) => {
-                    onChange(field.name, e.target.checked ? 'checked' : 'unchecked');
-                  }}
-                  size="small"
-                  sx={{
-                    '&.Mui-checked': {
-                      color: 'primary.main',
-                    }
-                  }}
-                />
-              }
-              label={
-                <Typography variant="body2">
-                  Ankreuzen
-                </Typography>
-              }
-            />
+            <RadioGroup
+              row
+              value={field.value}
+              onChange={(e) => onChange(field.name, e.target.value)}
+            >
+              <FormControlLabel 
+                value="Ja" 
+                control={<Radio size="small" />} 
+                label="Ja"
+              />
+              <FormControlLabel 
+                value="Nein" 
+                control={<Radio size="small" />} 
+                label="Nein"
+              />
+            </RadioGroup>
           </Box>
         );
       case 'select':
@@ -122,17 +113,19 @@ export const PdfForm: FC<PdfFormProps> = ({
             }}
           />
         );
-      default:
+      case 'text':
         return (
           <TextField
             fullWidth
-            label={field.name}
+            label={field.name.replace('_text', '')}
             value={field.value}
             onChange={(e) => onChange(field.name, e.target.value)}
             variant="outlined"
             size="small"
           />
         );
+      default:
+        return null;
     }
   };
 

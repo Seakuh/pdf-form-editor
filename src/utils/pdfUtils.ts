@@ -60,10 +60,15 @@ function isCheckboxField(field: any, fieldName: string, value: string): boolean 
       const widget = field.acroField.getWidgets()[0];
       if (widget) {
         const rect = widget.getRectangle();
-        // Typische Checkbox ist quadratisch und klein
-        const isSquare = Math.abs(rect.width - rect.height) < 5;
-        const isSmall = rect.width < 20 && rect.height < 20;
-        console.log(`Field ${fieldName} size:`, rect.width, rect.height, isSquare, isSmall);
+        // Erweiterte Größenprüfung für Checkboxen
+        const isSquare = Math.abs(rect.width - rect.height) < 8; // Toleranter
+        const isSmall = rect.width < 30 && rect.height < 30;     // Größerer Bereich
+        console.log(`Field ${fieldName} size check:`, {
+          width: rect.width,
+          height: rect.height,
+          isSquare,
+          isSmall
+        });
         return isSquare && isSmall;
       }
     } catch (e) {
@@ -72,61 +77,77 @@ function isCheckboxField(field: any, fieldName: string, value: string): boolean 
     return false;
   };
 
-  // Typische Checkbox-Indikatoren im Feldnamen
+  // Erweiterte Checkbox-Indikatoren
   const namePatterns = [
+    // Klammern und Boxen
     /[\[\(\{\s_]*[xX\u2713\u2714]?[\]\)\}\s_]*/,  // [], (), {}, mit X oder ✓
     /□|■|○|●|\u2610|\u2611|\u2612/,               // Unicode Checkbox Symbole
-    /\b(ankreuz|kreuz|markier|auswahl|check)/i,
+    /\[\s*\]/,                                     // Leere eckige Klammern
+    /\(\s*\)/,                                     // Leere runde Klammern
+    
+    // Deutsche Begriffe (erweitert)
+    /\b(ankreuz|kreuz|markier|auswahl|check|häkchen)/i,
     /\b(ja|nein|j\/n)\b/i,
     /\bzutreffend(es)?\b/i,
     /\bwählen?\b/i,
-    /\b(tick|mark|check|select|choice)\b/i,
-    /\b(yes|no|y\/n)\b/i
+    /\boptionen?\b/i,
+    /\bauswahlfeld\b/i,
+    /\bkästchen\b/i,
+    
+    // Englische Begriffe (erweitert)
+    /\b(tick|mark|check|select|choice|box)\b/i,
+    /\b(yes|no|y\/n)\b/i,
+    /\boption\b/i,
+    /\bselection\b/i
   ];
 
-  // Typische Werte für Checkboxen
+  // Erweiterte Wertmuster
   const valuePatterns = [
-    /^[xX\u2713\u2714]$/,          // X oder ✓
-    /^(ja|nein|yes|no)$/i,         // Ja/Nein Werte
-    /^(true|false|0|1)$/i,         // Boolean-ähnliche Werte
-    /^(checked|unchecked)$/i,      // Checkbox-Status
-    /^\s*[■●\u2611\u2612]\s*$/     // Gefüllte Symbole
+    /^[xX\u2713\u2714]$/,                    // X oder ✓
+    /^(ja|nein|yes|no)$/i,                   // Ja/Nein Werte
+    /^(true|false|0|1|on|off)$/i,            // Boolean-ähnliche Werte
+    /^(checked|unchecked|selected|none)$/i,   // Status-Werte
+    /^\s*[■●\u2611\u2612]\s*$/,              // Gefüllte Symbole
+    /^\s*$/                                   // Leerer Wert (oft bei Checkboxen)
   ];
+
+  // Prüfe auf maximale Textlänge (Checkboxen haben meist kurzen/keinen Text)
+  const hasShortValue = valueLower.length <= 3;
 
   const hasCheckboxName = namePatterns.some(pattern => pattern.test(nameLower));
   const hasCheckboxValue = valuePatterns.some(pattern => pattern.test(valueLower));
   const isSmall = isSmallField();
 
   // Debug-Ausgabe
-  console.log(`Checking field "${fieldName}":`, {
+  console.log(`Analyzing field "${fieldName}":`, {
     hasCheckboxName,
     hasCheckboxValue,
     isSmall,
-    value: valueLower
+    hasShortValue,
+    value: valueLower,
+    fieldType: field.constructor.name
   });
 
-  return hasCheckboxName || hasCheckboxValue || isSmall;
+  // Ein Feld wird als Checkbox erkannt, wenn:
+  // 1. Es einen Checkbox-Namen hat ODER
+  // 2. Es einen typischen Checkbox-Wert hat ODER
+  // 3. Es klein und quadratisch ist UND einen kurzen/leeren Wert hat
+  return hasCheckboxName || hasCheckboxValue || (isSmall && hasShortValue);
 }
 
 export async function analyzePdf(file: File): Promise<FormField[]> {
   try {
-    // PDF als ArrayBuffer laden
     const pdfBytes = await file.arrayBuffer();
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const form = pdfDoc.getForm();
     const fields: FormField[] = [];
 
-    // Alle Formularfelder durchgehen
     const pdfFields = form.getFields();
-    console.log('Found PDF fields:', pdfFields); // Debug
+    console.log('Found PDF fields:', pdfFields);
 
     for (const pdfField of pdfFields) {
       const name = pdfField.getName();
-      console.log('Processing field:', name); // Debug
-
-      // Feldtyp bestimmen
       const fieldType = pdfField.constructor.name;
-      console.log('Field type:', fieldType); // Debug
 
       switch (fieldType) {
         case 'PDFTextField':
@@ -134,21 +155,21 @@ export async function analyzePdf(file: File): Promise<FormField[]> {
             const textField = form.getTextField(name);
             const currentValue = textField.getText() || '';
             
-            let type: FormField['type'];
-            if (isCheckboxField(textField, name, currentValue)) {  // Übergebe das textField-Objekt
-              type = 'radio';
-              console.log('Checkbox field detected:', name, 'with value:', currentValue);
-            } else if (isDateField(name, currentValue)) {
-              type = 'date';
-            } else {
-              type = 'text';
-            }
-            
+            // Für jedes Textfeld erstellen wir zwei Einträge:
+            // 1. Das originale Textfeld
             fields.push({
-              name,
-              type,
-              value: type === 'radio' ? '' : currentValue,
-              options: type === 'radio' ? ['checked', 'unchecked'] : undefined,
+              name: `${name}_text`,
+              type: 'text',
+              value: currentValue,
+              bounds: await getFieldAnnotations(textField)
+            });
+
+            // 2. Ein Radio-Button-Feld für Ja/Nein Auswahl
+            fields.push({
+              name: `${name}_choice`,
+              type: 'radio',
+              value: '',
+              options: ['Ja', 'Nein'],
               bounds: await getFieldAnnotations(textField)
             });
           } catch (e) {
@@ -215,12 +236,7 @@ export async function analyzePdf(file: File): Promise<FormField[]> {
       }
     }
 
-    console.log('Extracted fields:', fields); // Debug
-
-    if (fields.length === 0) {
-      throw new Error('Keine Formularfelder gefunden');
-    }
-
+    console.log('Extracted fields:', fields);
     return fields;
   } catch (error) {
     console.error('PDF Analyse Fehler:', error);
