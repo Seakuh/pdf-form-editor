@@ -6,5 +6,9 @@ export default defineConfig({
   server: {
     port: 5123,
     open: true
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true
   }
 }) 

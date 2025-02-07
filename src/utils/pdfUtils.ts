@@ -1,138 +1,29 @@
 import { PDFDocument } from 'pdf-lib';
+import type { FormField } from '../types/types';
 
-interface FormField {
-  name: string;
-  type: 'text' | 'checkbox' | 'radio' | 'select' | 'date';
-  value: string;
-  options?: string[];
-  bounds?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    page: number;
-  };
+declare module 'pdf-lib' {
+  interface PDFRadioGroup {
+    getValue(): string;
+  }
 }
 
-function isDateField(fieldName: string, value: string): boolean {
-  const datePatterns = [
-    // Deutsche Muster
-    /datum/i,
-    /geb(urts)?[_.-]?(datum|tag)/i,
-    /geburt/i,
-    /ausstellungs[_.-]?datum/i,
-    /eingangs[_.-]?datum/i,
-    
-    // Englische Muster
-    /date/i,
-    /dob/i,
-    /birth[_.-]?date/i,
-    /issue[_.-]?date/i,
-    /entry[_.-]?date/i,
-    /start[_.-]?date/i,
-    /end[_.-]?date/i,
-    
-    // Abkürzungen
-    /dt\./i,
-    /geb\./i,
-    /dob/i,
-    
-    // Datumsformate
-    /^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$/,
-    /^\d{4}[./-]\d{1,2}[./-]\d{1,2}$/,
-    /^\d{1,2}[.]\d{1,2}[.]$/
-  ];
+async function getFieldAnnotations(field: any): Promise<FormField['bounds']> {
+  try {
+    const widget = field.acroField.getWidgets()[0];
+    if (!widget) return undefined;
 
-  return datePatterns.some(pattern => 
-    pattern.test(fieldName.toLowerCase()) || 
-    pattern.test(value.toLowerCase())
-  );
-}
-
-function isCheckboxField(field: any, fieldName: string, value: string): boolean {
-  // Konvertiere zu Kleinbuchstaben für besseren Vergleich
-  const nameLower = fieldName.toLowerCase();
-  const valueLower = value.toLowerCase().trim();
-
-  // Prüfe die Größe des Feldes
-  const isSmallField = () => {
-    try {
-      const widget = field.acroField.getWidgets()[0];
-      if (widget) {
-        const rect = widget.getRectangle();
-        // Erweiterte Größenprüfung für Checkboxen
-        const isSquare = Math.abs(rect.width - rect.height) < 8; // Toleranter
-        const isSmall = rect.width < 30 && rect.height < 30;     // Größerer Bereich
-        console.log(`Field ${fieldName} size check:`, {
-          width: rect.width,
-          height: rect.height,
-          isSquare,
-          isSmall
-        });
-        return isSquare && isSmall;
-      }
-    } catch (e) {
-      console.warn('Could not check field size:', e);
-    }
-    return false;
-  };
-
-  // Erweiterte Checkbox-Indikatoren
-  const namePatterns = [
-    // Klammern und Boxen
-    /[\[\(\{\s_]*[xX\u2713\u2714]?[\]\)\}\s_]*/,  // [], (), {}, mit X oder ✓
-    /□|■|○|●|\u2610|\u2611|\u2612/,               // Unicode Checkbox Symbole
-    /\[\s*\]/,                                     // Leere eckige Klammern
-    /\(\s*\)/,                                     // Leere runde Klammern
-    
-    // Deutsche Begriffe (erweitert)
-    /\b(ankreuz|kreuz|markier|auswahl|check|häkchen)/i,
-    /\b(ja|nein|j\/n)\b/i,
-    /\bzutreffend(es)?\b/i,
-    /\bwählen?\b/i,
-    /\boptionen?\b/i,
-    /\bauswahlfeld\b/i,
-    /\bkästchen\b/i,
-    
-    // Englische Begriffe (erweitert)
-    /\b(tick|mark|check|select|choice|box)\b/i,
-    /\b(yes|no|y\/n)\b/i,
-    /\boption\b/i,
-    /\bselection\b/i
-  ];
-
-  // Erweiterte Wertmuster
-  const valuePatterns = [
-    /^[xX\u2713\u2714]$/,                    // X oder ✓
-    /^(ja|nein|yes|no)$/i,                   // Ja/Nein Werte
-    /^(true|false|0|1|on|off)$/i,            // Boolean-ähnliche Werte
-    /^(checked|unchecked|selected|none)$/i,   // Status-Werte
-    /^\s*[■●\u2611\u2612]\s*$/,              // Gefüllte Symbole
-    /^\s*$/                                   // Leerer Wert (oft bei Checkboxen)
-  ];
-
-  // Prüfe auf maximale Textlänge (Checkboxen haben meist kurzen/keinen Text)
-  const hasShortValue = valueLower.length <= 3;
-
-  const hasCheckboxName = namePatterns.some(pattern => pattern.test(nameLower));
-  const hasCheckboxValue = valuePatterns.some(pattern => pattern.test(valueLower));
-  const isSmall = isSmallField();
-
-  // Debug-Ausgabe
-  console.log(`Analyzing field "${fieldName}":`, {
-    hasCheckboxName,
-    hasCheckboxValue,
-    isSmall,
-    hasShortValue,
-    value: valueLower,
-    fieldType: field.constructor.name
-  });
-
-  // Ein Feld wird als Checkbox erkannt, wenn:
-  // 1. Es einen Checkbox-Namen hat ODER
-  // 2. Es einen typischen Checkbox-Wert hat ODER
-  // 3. Es klein und quadratisch ist UND einen kurzen/leeren Wert hat
-  return hasCheckboxName || hasCheckboxValue || (isSmall && hasShortValue);
+    const rect = widget.getRectangle();
+    return {
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      page: widget.P().numberValue
+    };
+  } catch (e) {
+    console.warn('Could not get field annotations:', e);
+    return undefined;
+  }
 }
 
 export async function analyzePdf(file: File): Promise<FormField[]> {
@@ -150,32 +41,27 @@ export async function analyzePdf(file: File): Promise<FormField[]> {
       const fieldType = pdfField.constructor.name;
 
       switch (fieldType) {
-        case 'PDFTextField':
-          try {
-            const textField = form.getTextField(name);
-            const currentValue = textField.getText() || '';
-            
-            // Für jedes Textfeld erstellen wir zwei Einträge:
-            // 1. Das originale Textfeld
-            fields.push({
-              name: `${name}_text`,
-              type: 'text',
-              value: currentValue,
-              bounds: await getFieldAnnotations(textField)
-            });
+        case 'PDFTextField': {
+          const textField = form.getTextField(name);
+          const currentValue = textField.getText() || '';
+          const bounds = await getFieldAnnotations(textField);
+          
+          fields.push({
+            name: `${name}_text`,
+            type: 'text',
+            value: currentValue,
+            bounds
+          });
 
-            // 2. Ein Radio-Button-Feld für Ja/Nein Auswahl
-            fields.push({
-              name: `${name}_choice`,
-              type: 'radio',
-              value: '',
-              options: ['Ja', 'Nein'],
-              bounds: await getFieldAnnotations(textField)
-            });
-          } catch (e) {
-            console.warn(`Error processing field ${name}:`, e);
-          }
+          fields.push({
+            name: `${name}_choice`,
+            type: 'radio',
+            value: '',
+            options: ['Ja', 'Nein'],
+            bounds
+          });
           break;
+        }
 
         case 'PDFCheckBox':
           try {
@@ -304,24 +190,4 @@ export function downloadPdf(pdfBytes: Uint8Array) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-}
-
-// Neue Hilfsfunktion für Feldpositionen
-async function getFieldAnnotations(field: any) {
-  try {
-    const widget = field.acroField.getWidgets()[0];
-    if (!widget) return null;
-
-    const rect = widget.getRectangle();
-    return {
-      x: rect.x,
-      y: rect.y,
-      width: rect.width,
-      height: rect.height,
-      page: widget.P().numberValue
-    };
-  } catch (e) {
-    console.warn('Could not get field annotations:', e);
-    return null;
-  }
 } 

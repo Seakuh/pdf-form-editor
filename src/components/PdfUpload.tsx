@@ -1,6 +1,6 @@
 import { FC, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Box, Typography, Paper, Button } from '@mui/material';
+import { Box, Typography, Paper } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,7 +16,7 @@ export const PdfUpload: FC<PdfUploadProps> = ({
   variant = 'default' 
 }) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: useCallback((files) => files[0] && onPdfSelected(files[0]), [onPdfSelected]),
+    onDrop: useCallback((files: File[]) => files[0] && onPdfSelected(files[0]), [onPdfSelected]),
     accept: { 'application/pdf': ['.pdf'] },
     multiple: false
   });

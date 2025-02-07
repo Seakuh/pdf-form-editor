@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Container, Typography, Box, ThemeProvider, createTheme, GlobalStyles } from '@mui/material';
+import { Typography, Box, ThemeProvider, createTheme, GlobalStyles } from '@mui/material';
 import { PdfUpload } from './components/PdfUpload';
 import { PdfForm } from './components/PdfForm';
-import { PdfPreview } from './components/PdfPreview';
-import { PDFDocument } from 'pdf-lib';
 import { AnimatedHeadline } from './components/AnimatedHeadline';
 import { fillPdfForm, downloadPdf, analyzePdf } from './utils/pdfUtils';
+import type { FormField } from './types/types';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 const theme = createTheme({
   palette: {
@@ -19,32 +20,12 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string>('');
   const [activeField, setActiveField] = useState<string>('');
-  const [fields, setFields] = useState<Array<{
-    name: string;
-    type: 'text' | 'checkbox' | 'radio' | 'select';
-    value: string;
-    options?: string[];
-    bounds?: { x: number; y: number };
-  }>>([]);
+  const [fields, setFields] = useState<FormField[]>([]);
 
   const handleFieldChange = (name: string, value: string) => {
     setActiveField(name);
     setFields(fields.map(field => 
       field.name === name ? { ...field, value } : field
-    ));
-  };
-
-  const handleFieldPositionChange = (name: string, value: string, bounds?: { x: number; y: number }) => {
-    setFields(fields.map(field => 
-      field.name === name 
-        ? { 
-            ...field, 
-            value,
-            bounds: field.bounds 
-              ? { ...field.bounds, x: bounds?.x ?? field.bounds.x, y: bounds?.y ?? field.bounds.y }
-              : undefined
-          }
-        : field
     ));
   };
 
@@ -78,111 +59,98 @@ function App() {
     }
   };
 
-  const handleFieldAdd = (fieldData: { name: string; value: string; position: { x: number; y: number } }) => {
-    setFields([...fields, {
-      name: fieldData.name,
-      type: 'text',
-      value: fieldData.value,
-      bounds: {
-        x: fieldData.position.x,
-        y: fieldData.position.y,
-        width: 100,
-        height: 30,
-        page: 1
-      }
-    }]);
-  };
-
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyles
-        styles={`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          
-          @keyframes slideUp {
-            from {
-              opacity: 0;
-              transform: translateY(20px);
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <GlobalStyles
+          styles={`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
             }
-            to {
-              opacity: 1;
-              transform: translateY(0);
+            
+            @keyframes slideUp {
+              from {
+                opacity: 0;
+                transform: translateY(20px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
             }
-          }
-        `}
-      />
-      <Box sx={{
-        minHeight: '100vh',
-        bgcolor: '#f5f5f5',
-        py: 2,
-        px: { xs: 2, sm: 3 }
-      }}>
-        {!fields.length ? (
-          // Upload Screen
-          <Box sx={{
-            maxWidth: '600px',
-            margin: '0 auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 3,
-            pt: 4
-          }}>
-            <AnimatedHeadline />
-            <Typography 
-              variant="body1" 
-              color="text.secondary"
-              textAlign="center"
-              sx={{ mb: 3 }}
-            >
-              Laden Sie Ihr PDF-Formular hoch, um es auszufüllen
-            </Typography>
-            <PdfUpload 
-              onPdfSelected={handlePdfSelected}
-              isLoading={isLoading}
-            />
-          </Box>
-        ) : (
-          // Form View
-          <Box sx={{
-            maxWidth: '600px',
-            margin: '0 auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 3
-          }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 2
+          `}
+        />
+        <Box sx={{
+          minHeight: '100vh',
+          bgcolor: '#f5f5f5',
+          py: 2,
+          px: { xs: 2, sm: 3 }
+        }}>
+          {!fields.length ? (
+            // Upload Screen
+            <Box sx={{
+              maxWidth: '600px',
+              margin: '0 auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 3,
+              pt: 4
             }}>
+              <AnimatedHeadline />
               <Typography 
-                variant="h5" 
-                component="h1"
-                sx={{ color: 'primary.main' }}
+                variant="body1" 
+                color="text.secondary"
+                textAlign="center"
+                sx={{ mb: 3 }}
               >
-                PDF Formular
+                Laden Sie Ihr PDF-Formular hoch, um es auszufüllen
               </Typography>
               <PdfUpload 
                 onPdfSelected={handlePdfSelected}
                 isLoading={isLoading}
-                variant="small"
               />
             </Box>
-            
-            <PdfForm
-              fields={fields}
-              onChange={handleFieldChange}
-              onSubmit={handleSubmit}
-              activeField={activeField}
-            />
-          </Box>
-        )}
-      </Box>
+          ) : (
+            // Form View
+            <Box sx={{
+              maxWidth: '600px',
+              margin: '0 auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 3
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 2
+              }}>
+                <Typography 
+                  variant="h5" 
+                  component="h1"
+                  sx={{ color: 'primary.main' }}
+                >
+                  PDF Formular
+                </Typography>
+                <PdfUpload 
+                  onPdfSelected={handlePdfSelected}
+                  isLoading={isLoading}
+                  variant="small"
+                />
+              </Box>
+              
+              <PdfForm
+                fields={fields}
+                onChange={handleFieldChange}
+                onSubmit={handleSubmit}
+                activeField={activeField}
+              />
+            </Box>
+          )}
+        </Box>
+      </LocalizationProvider>
     </ThemeProvider>
   );
 }

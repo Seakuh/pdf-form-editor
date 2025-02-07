@@ -12,8 +12,7 @@ interface PdfPreviewProps {
 export const PdfPreview: FC<PdfPreviewProps> = ({ 
   pdfUrl, 
   activeField,
-  onFieldAdd,
-  onFieldSelect 
+  onFieldAdd
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

@@ -15,18 +15,10 @@ import {
   Typography
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import 'dayjs/locale/de'; // Für deutsche Lokalisierung
 import SaveIcon from '@mui/icons-material/Save';
-
-interface FormField {
-  name: string;
-  type: 'text' | 'checkbox' | 'radio' | 'select' | 'date';
-  value: string;
-  options?: string[];
-}
+import type { FormField } from '../types/types';
 
 interface PdfFormProps {
   fields: FormField[];
