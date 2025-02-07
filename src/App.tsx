@@ -11,7 +11,12 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
+      main: '#DC2626',
+      light: '#EF4444',
+      dark: '#B91C1C',
+    },
+    secondary: {
+      main: '#ffffff',
     },
   },
 });

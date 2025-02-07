@@ -144,13 +144,34 @@ export const PdfForm: FC<PdfFormProps> = ({
           sx={{ 
             mt: 2,
             p: 3, 
-            bgcolor: 'primary.main', 
             borderRadius: 2,
             color: 'white',
-            boxShadow: 2
+            boxShadow: 2,
+            background: 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)',
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'radial-gradient(circle at top right, rgba(255,255,255,0.1) 0%, transparent 60%)',
+              pointerEvents: 'none',
+            }
           }}
         >
-          <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              mb: 2, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          >
             <DriveFileRenameOutlineIcon />
             Name your PDF
           </Typography>
@@ -166,7 +187,7 @@ export const PdfForm: FC<PdfFormProps> = ({
               '& .MuiOutlinedInput-root': {
                 bgcolor: 'white',
                 '&:hover fieldset': {
-                  borderColor: 'white',
+                  borderColor: 'rgba(255,255,255,0.8)',
                 },
                 '&.Mui-focused fieldset': {
                   borderColor: 'white',
@@ -190,10 +211,11 @@ export const PdfForm: FC<PdfFormProps> = ({
               startIcon={<SaveIcon />}
               sx={{
                 bgcolor: 'white',
-                color: 'primary.main',
+                color: '#DC2626',
                 '&:hover': {
-                  bgcolor: 'grey.100',
+                  bgcolor: 'rgba(255,255,255,0.9)',
                 },
+                transition: 'all 0.2s ease',
               }}
             >
               Save PDF
@@ -209,6 +231,7 @@ export const PdfForm: FC<PdfFormProps> = ({
                   borderColor: 'white',
                   bgcolor: 'rgba(255,255,255,0.1)',
                 },
+                transition: 'all 0.2s ease',
               }}
             >
               Share
