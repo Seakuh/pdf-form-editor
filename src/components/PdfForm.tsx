@@ -19,23 +19,29 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/de'; // Für deutsche Lokalisierung
 import SaveIcon from '@mui/icons-material/Save';
 import ShareIcon from '@mui/icons-material/Share';
+import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
 import type { FormField } from '../types/types';
 import { ShareModal } from './ShareModal';
 
 interface PdfFormProps {
   fields: FormField[];
   onChange: (name: string, value: string) => void;
-  onSubmit: () => void;
+  onSubmit: (pdfName: string) => void;
   activeField: string;
 }
 
 export const PdfForm: FC<PdfFormProps> = ({ 
   fields, 
   onChange, 
-  onSubmit,
+  onSubmit: parentOnSubmit,
   activeField 
 }) => {
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [pdfName, setPdfName] = useState('form.pdf');
+
+  const handleSubmit = () => {
+    parentOnSubmit(pdfName);
+  };
 
   const renderField = (field: FormField) => {
     switch (field.type) {
@@ -133,33 +139,87 @@ export const PdfForm: FC<PdfFormProps> = ({
             {renderField(field)}
           </Box>
         ))}
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 2,
-          flexWrap: 'wrap'
-        }}>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={onSubmit}
-            startIcon={<SaveIcon />}
-          >
-            Save PDF
-          </Button>
-          <Button
+        
+        <Box 
+          sx={{ 
+            mt: 2,
+            p: 3, 
+            bgcolor: 'primary.main', 
+            borderRadius: 2,
+            color: 'white',
+            boxShadow: 2
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DriveFileRenameOutlineIcon />
+            Name your PDF
+          </Typography>
+          
+          <TextField
+            fullWidth
+            value={pdfName}
+            onChange={(e) => setPdfName(e.target.value)}
             variant="outlined"
-            color="primary"
-            onClick={() => setShareModalOpen(true)}
-            startIcon={<ShareIcon />}
-          >
-            Share
-          </Button>
+            size="small"
+            sx={{
+              mb: 3,
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'white',
+                '&:hover fieldset': {
+                  borderColor: 'white',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'white',
+                },
+              },
+            }}
+            InputProps={{
+              endAdornment: <Box component="span" sx={{ color: 'text.secondary' }}>.pdf</Box>,
+            }}
+          />
+
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 2,
+            flexWrap: 'wrap'
+          }}>
+            <Button 
+              variant="contained" 
+              color="secondary"
+              onClick={handleSubmit}
+              startIcon={<SaveIcon />}
+              sx={{
+                bgcolor: 'white',
+                color: 'primary.main',
+                '&:hover': {
+                  bgcolor: 'grey.100',
+                },
+              }}
+            >
+              Save PDF
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => setShareModalOpen(true)}
+              startIcon={<ShareIcon />}
+              sx={{
+                borderColor: 'white',
+                color: 'white',
+                '&:hover': {
+                  borderColor: 'white',
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                },
+              }}
+            >
+              Share
+            </Button>
+          </Box>
         </Box>
       </Box>
       <ShareModal 
         open={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
-        pdfName="form.pdf"
+        pdfName={pdfName}
       />
     </Paper>
   );

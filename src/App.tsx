@@ -29,13 +29,13 @@ function App() {
     ));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (pdfName: string) => {
     try {
       setIsLoading(true);
       const response = await fetch(pdfUrl);
       const pdfBytes = await response.arrayBuffer();
       const filledPdfBytes = await fillPdfForm(pdfBytes, fields);
-      downloadPdf(filledPdfBytes);
+      downloadPdf(filledPdfBytes, pdfName);
     } catch (error) {
       console.error('Error filling PDF:', error);
     } finally {

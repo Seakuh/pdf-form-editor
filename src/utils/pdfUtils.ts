@@ -178,14 +178,18 @@ export async function fillPdfForm(pdfBytes: ArrayBuffer, fields: FormField[]): P
   }
 }
 
-export function downloadPdf(pdfBytes: Uint8Array) {
+export function downloadPdf(pdfBytes: Uint8Array, customName: string) {
   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  
+  // Stelle sicher, dass der Name mit .pdf endet
+  const fileName = customName.toLowerCase().endsWith('.pdf') 
+    ? customName 
+    : `${customName}.pdf`;
   
   link.href = url;
-  link.download = `ausgefuelltes-formular-${timestamp}.pdf`;
+  link.download = fileName;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
